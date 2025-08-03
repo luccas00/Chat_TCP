@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -25,29 +25,169 @@ namespace Chat_TCP
         private Button btnListar;
         private Button btnBroadcast;
         private Button btnPrivado;
+        private Button btnDiscover;
+        private Button btnDisconnect;
 
         private string apelido;
         private int portaPrivada;
 
         public ClienteChat()
         {
-            Text = "Chat TCP Cliente";
+            Text = "Chat TCP Cliente - Desconectado";
             Width = 600;
             Height = 500;
             InitializeUI();
+            StartUdpDiscovery();
+            
+        }
+
+        public string DiscoverServer(int timeoutMs = 3000)
+        {
+            using var udp = new UdpClient();
+            udp.EnableBroadcast = true;
+            var discoverEP = new IPEndPoint(IPAddress.Broadcast, 30001);
+            byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
+
+            Console.WriteLine("Enviando broadcast para descobrir servidor...");
+
+            // Envia broadcast discovery
+            udp.Send(payload, payload.Length, discoverEP);
+
+            // Define timeout para reduzir latência
+            var asyncResult = udp.BeginReceive(null, null);
+            if (asyncResult.AsyncWaitHandle.WaitOne(timeoutMs))
+            {
+                IPEndPoint serverEP = null;
+                byte[] response = udp.EndReceive(asyncResult, ref serverEP);
+                // Payload contem o IP do servidor
+                return Encoding.UTF8.GetString(response);
+            }
+
+            return null; // Nenhuma resposta no SLA definido
+        }
+
+        private void StartUdpDiscovery()
+        {
+            Thread udpListener = new(() =>
+            {
+                using var udp = new UdpClient(30000);
+                udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                var remoteEP = new IPEndPoint(IPAddress.Any, 0);
+                while (true)
+                {
+                    try
+                    {
+                        byte[] data = udp.Receive(ref remoteEP);
+                        string discoveredIp = Encoding.UTF8.GetString(data);
+                        Invoke((MethodInvoker)(() => txtServerIp.Text = discoveredIp));
+                    }
+                    catch { /* Log ou ignore */ }
+                }
+            })
+            { IsBackground = true };
+            udpListener.Start();
         }
 
         private void InitializeUI()
         {
-            var panelConfig = new Panel { Dock = DockStyle.Top, Height = 60 };
-            txtNickname = new TextBox { PlaceholderText = "Apelido", Width = 100, Left = 5, Top = 5 };
-            txtServerIp = new TextBox { PlaceholderText = "Servidor IP", Width = 120, Left = 115, Top = 5 };
-            numServerPort = new NumericUpDown { Minimum = 1, Maximum = 65535, Value = 1998, Left = 245, Top = 5, Width = 60 };
-            btnConnect = new Button { Text = "Conectar ao Servidor", Left = 315, Top = 3, Width = 100 };
-            btnConnect.Click += BtnConnect_Click;
-            panelConfig.Controls.AddRange(new Control[] { txtNickname, txtServerIp, numServerPort, btnConnect });
-            Controls.Add(panelConfig);
+            // 1) Linha única com Apelido, Servidor IP e Porta
+            var panelInputs = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 35
+            };
+            Controls.Add(panelInputs);
 
+            txtNickname = new TextBox
+            {
+                PlaceholderText = "Apelido",
+                Width = 150,
+                Top = 5
+            };
+            txtServerIp = new TextBox
+            {
+                PlaceholderText = "Servidor IP",
+                Width = 200,
+                Top = 5
+            };
+            numServerPort = new NumericUpDown
+            {
+                Minimum = 1,
+                Maximum = 65535,
+                Value = 1998,
+                Width = 80,
+                Top = 5
+            };
+
+            // calcula posição horizontal para centralizar os três
+            int spacing = 10;
+            int totalWidth = txtNickname.Width + txtServerIp.Width + numServerPort.Width + spacing * 2;
+            int startX = (ClientSize.Width - totalWidth) / 2;
+            txtNickname.Left = startX;
+            txtServerIp.Left = txtNickname.Right + spacing;
+            numServerPort.Left = txtServerIp.Right + spacing;
+
+            panelInputs.Controls.AddRange(new Control[]
+            {
+            txtNickname,
+            txtServerIp,
+            numServerPort
+            });
+
+            // 2) Segunda linha: três botões lado a lado (Buscar Servidor, Conectar, Desconectar)
+            var panelButtons = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 45
+            };
+            Controls.Add(panelButtons);
+
+            btnDiscover = new Button
+            {
+                Text = "Buscar Servidor",
+                Width = 140,
+                Height = 30,
+                Top = 5
+            };
+            btnDiscover.Click += BtnDiscover_Click;
+
+            btnConnect = new Button
+            {
+                Text = "Conectar",
+                Width = 140,
+                Height = 30,
+                Top = 5
+            };
+            btnConnect.Click += BtnConnect_Click;
+
+            btnDisconnect = new Button
+            {
+                Text = "Desconectar",
+                Width = 140,
+                Height = 30,
+                Top = 5,
+                Enabled = false
+            };
+            btnDisconnect.Click += BtnDisconnect_Click;
+
+            // layout centralizado na ordem: Buscar, Conectar, Desconectar
+            int spacingBtn = 10;
+            int totalWidthBtn = btnDiscover.Width + btnConnect.Width + btnDisconnect.Width + spacingBtn * 2;
+            int startXBtn = (ClientSize.Width - totalWidthBtn) / 2;
+
+            btnDiscover.Left = startXBtn;
+            btnConnect.Left = btnDiscover.Right + spacingBtn;
+            btnDisconnect.Left = btnConnect.Right + spacingBtn;
+
+            panelButtons.Controls.AddRange(new Control[]
+            {
+            btnDiscover,
+            btnConnect,
+            btnDisconnect
+            });
+
+
+            // 3) Texto do chat e demais controles continuam como antes
             txtMensagens = new TextBox
             {
                 Multiline = true,
@@ -59,7 +199,7 @@ namespace Chat_TCP
             Controls.Add(txtMensagens);
 
             var panelUsers = new Panel { Dock = DockStyle.Top, Height = 150 };
-            btnListar = new Button { Text = "Listar Usu�rios", Enabled = false, Dock = DockStyle.Top, Height = 30 };
+            btnListar = new Button { Text = "Listar Usuários", Enabled = false, Dock = DockStyle.Top, Height = 30 };
             btnListar.Click += (s, e) => SendCommand("/lista");
             lstUsuarios = new ListBox { Dock = DockStyle.Top, Height = 90, Enabled = false };
             btnPrivado = new Button { Text = "Conectar Chat Privado", Enabled = false, Dock = DockStyle.Top, Height = 30 };
@@ -75,11 +215,65 @@ namespace Chat_TCP
             Controls.Add(panelBroadcast);
         }
 
+        private void ResetUI()
+        {
+            Invoke((MethodInvoker)(() =>
+            {
+                this.Text = "Chat TCP Cliente - Desconectado";
+
+                // reativa inputs
+                txtNickname.Enabled = true;
+                txtServerIp.Enabled = true;
+                numServerPort.Enabled = true;
+                btnConnect.Enabled = true;
+                btnDiscover.Enabled = true;
+
+                // desativa ações de chat
+                btnDisconnect.Enabled = false;  // ← desabilita Desconectar
+                btnListar.Enabled = false;
+                lstUsuarios.Enabled = false;
+                btnBroadcast.Enabled = false;
+                txtBroadcast.Enabled = false;
+                btnPrivado.Enabled = false;
+
+                // limpa conteúdo
+                txtMensagens.Clear();
+                lstUsuarios.Items.Clear();
+            }));
+        }
+
+        private void BtnDiscover_Click(object sender, EventArgs e)
+        {
+            string servidor = DiscoverServer(3000);
+            if (!string.IsNullOrEmpty(servidor))
+                txtServerIp.Text = servidor;
+            else
+                MessageBox.Show("Nenhuma resposta do servidor.", "Busca de Servidor", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+        }
+
+        private void BtnDisconnect_Click(object sender, EventArgs e)
+        {
+            // fecha streams e sockets
+            try
+            {
+                stream?.Close();
+                cliente?.Close();
+                servidorPrivado?.Stop();
+            }
+            catch { /* ignora */ }
+
+            //MessageBox.Show("Desconectado do servidor.");
+
+            // reseta UI para estado inicial
+            ResetUI();
+        }
+
         private void BtnConnect_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtNickname.Text))
             {
-                MessageBox.Show("Defina um apelido v�lido.");
+                MessageBox.Show("Defina um apelido válido.");
                 return;
             }
             apelido = txtNickname.Text.Trim();
@@ -103,12 +297,15 @@ namespace Chat_TCP
                 threadReceber = new Thread(ReceiveLoop) { IsBackground = true };
                 threadReceber.Start();
 
+                this.Text = $"Chat TCP Cliente - {apelido} - Conectado";
                 btnListar.Enabled = true;
                 lstUsuarios.Enabled = true;
                 btnBroadcast.Enabled = true;
                 txtBroadcast.Enabled = true;
                 btnPrivado.Enabled = true;
                 btnConnect.Enabled = false;
+                btnDisconnect.Enabled = true;
+                btnDiscover.Enabled = false;
                 txtNickname.Enabled = false;
                 txtServerIp.Enabled = false;
                 numServerPort.Enabled = false;
@@ -125,11 +322,11 @@ namespace Chat_TCP
             {
                 try
                 {
-                    // Aceita conex�o do cliente privado
+                    // Aceita conexão do cliente privado
                     var clientPriv = servidorPrivado.AcceptTcpClient();
                     Invoke((MethodInvoker)(() =>
                     {
-                        // Usa construtor espec�fico para conex�es recebidas
+                        // Usa construtor específico para conexões recebidas
                         var janela = new JanelaChatPrivado(apelido, clientPriv);
                         janela.Show();
                     }));
@@ -159,6 +356,7 @@ namespace Chat_TCP
             {
                 cliente.Close();
                 Invoke((MethodInvoker)(() => MessageBox.Show("Desconectado do servidor.")));
+                ResetUI();
             }
         }
 
@@ -182,7 +380,7 @@ namespace Chat_TCP
         {
             if (lstUsuarios.SelectedItem == null)
             {
-                MessageBox.Show("Selecione um usu�rio.");
+                MessageBox.Show("Selecione um usuário.");
                 return;
             }
             string item = lstUsuarios.SelectedItem.ToString();
@@ -190,9 +388,8 @@ namespace Chat_TCP
             var addr = item.Substring(item.IndexOf('(') + 1).TrimEnd(')').Split(':');
             string ip = addr[0];
             int port = int.Parse(addr[1]);
-            // Usa loopback caso IP seja local (mesma m�quina)
-            if (IsLocalAddress(ip))
-                ip = IPAddress.Loopback.ToString();
+            // Usa loopback caso IP seja local (mesma máquina)
+ 
             var janela = new JanelaChatPrivado(apelido, apelidoDest, ip, port);
             janela.Show();
         }
@@ -209,15 +406,6 @@ namespace Chat_TCP
             }
         }
 
-        private bool IsLocalAddress(string ip)
-        {
-            if (ip == IPAddress.Loopback.ToString()) return true;
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var addr in host.AddressList)
-                if (addr.AddressFamily == AddressFamily.InterNetwork && addr.ToString() == ip)
-                    return true;
-            return false;
-        }
 
         [STAThread]
         public static void Main()

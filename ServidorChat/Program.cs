@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -19,21 +20,52 @@ namespace Chat_TCP
         static void Main()
         {
             const int portaChat = 1998;
-            const int portaApi  = 2998;
+            const int portaApi = 2998;
 
             listenerChat = new TcpListener(IPAddress.Any, portaChat);
-            listenerApi  = new TcpListener(IPAddress.Any, portaApi);
+            listenerApi = new TcpListener(IPAddress.Any, portaApi);
 
             listenerChat.Start();
             listenerApi.Start();
 
-            Console.WriteLine($"Servidor Online");
-            Console.WriteLine($"Ouvindo Chat na porta {portaChat}");
-            Console.WriteLine($"Ouvindo API na porta {portaApi}");
+            // 1) Resolve o IPv4 da interface Wi-Fi operante
+            string ipWifi = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(nic =>
+                    nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 &&
+                    nic.OperationalStatus == OperationalStatus.Up)
+                .SelectMany(nic =>
+                    nic.GetIPProperties()
+                       .UnicastAddresses
+                       .Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork))
+                .Select(u => u.Address.ToString())
+                .FirstOrDefault()
+                ?? "127.0.0.1"; // fallback caso não encontre Wi-Fi
 
-            //ip da rede do servidor
-            string ipServidor = ((IPEndPoint)listenerChat.LocalEndpoint).Address.ToString();
-            Console.WriteLine($"IP do Servidor: {ipServidor}");
+            StartDiscoveryResponder(ipWifi);
+            
+            // 2) Use esse ipWifi no broadcast UDP
+            Thread udpBroadcastThread = new(() =>
+            {
+                using var udp = new UdpClient();
+                udp.EnableBroadcast = true;
+                var broadcastEP = new IPEndPoint(IPAddress.Broadcast, 30000);
+                byte[] payload = Encoding.UTF8.GetBytes(ipWifi);
+                while (true)
+                {
+                    udp.Send(payload, payload.Length, broadcastEP);
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Broadcast UDP periódico enviado: {ipWifi}");
+                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                }
+            })
+            { IsBackground = true };
+            udpBroadcastThread.Start();
+
+            Console.WriteLine("Servidor Online");
+            Console.WriteLine($"Ouvindo Chat na porta: {portaChat}");
+            Console.WriteLine($"Ouvindo API na porta: {portaApi}");
+            Console.WriteLine($"IP do Servidor: {ipWifi}");
+            Console.WriteLine("Listener UDP de Discovery ativo na porta 30001.");
+            Console.WriteLine("Broadcast UDP iniciado para descoberta de IP do servidor.");
             Console.WriteLine("Aguardando conexões...");
 
             Thread tChat = new(() => AceitarConexoes(listenerChat));
@@ -44,6 +76,36 @@ namespace Chat_TCP
 
             tChat.Join();
             tApi.Join();
+        }
+
+        static void StartDiscoveryResponder(string serverIp)
+        {
+            var udp = new UdpClient(30001); // Porta de discovery
+            Thread responder = new(() =>
+            {
+                var remoteEP = new IPEndPoint(IPAddress.Any, 0);
+                while (true)
+                {
+                    try
+                    {
+                        byte[] request = udp.Receive(ref remoteEP);
+                        string msg = Encoding.UTF8.GetString(request);
+                        if (msg == "DISCOVER_SERVER")
+                        {
+                            // Handshake: responde diretamente ao client
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Discovery request recebido de {remoteEP.Address}. Respondendo com {serverIp}");
+                            byte[] reply = Encoding.UTF8.GetBytes(serverIp);
+                            udp.Send(reply, reply.Length, remoteEP);
+                        }
+                    }
+                    catch
+                    {
+                        // Log de erro ou retry
+                    }
+                }
+            })
+            { IsBackground = true };
+            responder.Start();
         }
 
         static void AceitarConexoes(TcpListener listener)
