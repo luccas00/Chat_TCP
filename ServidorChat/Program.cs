@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -12,9 +14,7 @@ namespace Chat_TCP
     {
         static TcpListener listenerChat;
         static TcpListener listenerApi;
-
         static List<(TcpClient cliente, string apelido, string ip, int portaPrivada)> clientes = new();
-
         static object locker = new();
 
         static void Main()
@@ -28,28 +28,25 @@ namespace Chat_TCP
             listenerChat.Start();
             listenerApi.Start();
 
-            // 1) Resolve o IPv4 da interface Wi-Fi operante
-            string ipWifi = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(nic =>
-                    nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 &&
-                    nic.OperationalStatus == OperationalStatus.Up)
-                .SelectMany(nic =>
-                    nic.GetIPProperties()
-                       .UnicastAddresses
-                       .Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork))
-                .Select(u => u.Address.ToString())
-                .FirstOrDefault()
-                ?? "127.0.0.1"; // fallback caso não encontre Wi-Fi
+            // 1) Resolve o IPv4 ativo (não loopback) da máquina
+            string ipWifi = Dns.GetHostAddresses(Dns.GetHostName())
+                .FirstOrDefault(a =>
+                    a.AddressFamily == AddressFamily.InterNetwork &&
+                    !IPAddress.IsLoopback(a))
+                ?.ToString()
+                ?? throw new InvalidOperationException("Nenhum IPv4 ativo encontrado");
 
+            // 2) Inicia listener UDP de discovery
             StartDiscoveryResponder(ipWifi);
-            
-            // 2) Use esse ipWifi no broadcast UDP
+
+            // 3) Thread de broadcast UDP, vinculando à NIC correta
             Thread udpBroadcastThread = new(() =>
             {
-                using var udp = new UdpClient();
+                using var udp = new UdpClient(new IPEndPoint(IPAddress.Parse(ipWifi), 0));
                 udp.EnableBroadcast = true;
                 var broadcastEP = new IPEndPoint(IPAddress.Broadcast, 30000);
                 byte[] payload = Encoding.UTF8.GetBytes(ipWifi);
+
                 while (true)
                 {
                     udp.Send(payload, payload.Length, broadcastEP);
@@ -60,6 +57,7 @@ namespace Chat_TCP
             { IsBackground = true };
             udpBroadcastThread.Start();
 
+            // 4) Informações iniciais
             Console.WriteLine("Servidor Online");
             Console.WriteLine($"Ouvindo Chat na porta: {portaChat}");
             Console.WriteLine($"Ouvindo API na porta: {portaApi}");
@@ -68,8 +66,9 @@ namespace Chat_TCP
             Console.WriteLine("Broadcast UDP iniciado para descoberta de IP do servidor.");
             Console.WriteLine("Aguardando conexões...");
 
-            Thread tChat = new(() => AceitarConexoes(listenerChat));
-            Thread tApi  = new(() => AceitarConexoes(listenerApi));
+            // 5) Threads para aceitar conexões TCP
+            Thread tChat = new(() => AceitarConexoes(listenerChat)) { IsBackground = false };
+            Thread tApi = new(() => AceitarConexoes(listenerApi)) { IsBackground = false };
 
             tChat.Start();
             tApi.Start();
@@ -92,7 +91,6 @@ namespace Chat_TCP
                         string msg = Encoding.UTF8.GetString(request);
                         if (msg == "DISCOVER_SERVER")
                         {
-                            // Handshake: responde diretamente ao client
                             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Discovery request recebido de {remoteEP.Address}. Respondendo com {serverIp}");
                             byte[] reply = Encoding.UTF8.GetBytes(serverIp);
                             udp.Send(reply, reply.Length, remoteEP);
@@ -100,7 +98,7 @@ namespace Chat_TCP
                     }
                     catch
                     {
-                        // Log de erro ou retry
+                        // Falha no receive: log ou retry
                     }
                 }
             })
@@ -118,8 +116,8 @@ namespace Chat_TCP
 
                 int bytesLidos = stream.Read(buffer, 0, buffer.Length);
                 string dados = Encoding.UTF8.GetString(buffer, 0, bytesLidos);
-
                 var partes = dados.Split(';');
+
                 if (partes.Length != 2 || !int.TryParse(partes[1], out int portaPrivada))
                 {
                     Console.WriteLine("Formato inválido recebido, desconectando cliente.");
@@ -136,7 +134,7 @@ namespace Chat_TCP
                     Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Novo usuário: {apelido} ({ipCliente}:{portaPrivada})");
                 }
 
-                Thread thread = new(() => AtenderCliente(cliente));
+                Thread thread = new(() => AtenderCliente(cliente)) { IsBackground = true };
                 thread.Start();
             }
         }
@@ -153,73 +151,59 @@ namespace Chat_TCP
                 {
                     string mensagem = Encoding.UTF8.GetString(buffer, 0, bytesLidos).Trim();
 
-                    if (mensagem == "/count")
+                    switch (mensagem)
                     {
-                        int total;
-                        lock (locker)
-                            total = clientes.Count;
+                        case "/count":
+                            int totalCount;
+                            lock (locker) totalCount = clientes.Count;
+                            stream.Write(Encoding.UTF8.GetBytes($"Usuarios Conectados: {totalCount}"));
+                            break;
 
-                        byte[] resposta = Encoding.UTF8.GetBytes($"Usuarios Conectados: {total}");
-                        stream.Write(resposta, 0, resposta.Length);
-                    }
-                    else if (mensagem == "/lista")
-                    {
-                        StringBuilder sb = new();
-                        lock (locker)
-                        {
-                            foreach (var c in clientes)
-                                sb.AppendLine($"{c.apelido};{c.ip};{c.portaPrivada}");
-                        }
+                        case "/lista":
+                            var sb = new StringBuilder();
+                            lock (locker)
+                                clientes.ForEach(c => sb.AppendLine($"{c.apelido};{c.ip};{c.portaPrivada}"));
+                            stream.Write(Encoding.UTF8.GetBytes(sb.ToString()));
+                            break;
 
-                        byte[] resposta = Encoding.UTF8.GetBytes(sb.ToString());
-                        stream.Write(resposta, 0, resposta.Length);
-                    }
-                    else if (mensagem.StartsWith("/desconectar "))
-                    {
-                        string apelidoParaDesconectar = mensagem.Substring(13).Trim();
-
-                        TcpClient clienteParaRemover = null;
-                        lock (locker)
-                        {
-                            foreach (var c in clientes)
+                        default:
+                            if (mensagem.StartsWith("/desconectar "))
                             {
-                                if (c.apelido.Equals(apelidoParaDesconectar, StringComparison.OrdinalIgnoreCase))
+                                var apelidoRem = mensagem["/desconectar ".Length..].Trim();
+                                TcpClient toRemove = null;
+                                lock (locker)
                                 {
-                                    clienteParaRemover = c.cliente;
-                                    break;
+                                    toRemove = clientes
+                                        .FirstOrDefault(c => c.apelido.Equals(apelidoRem, StringComparison.OrdinalIgnoreCase))
+                                        .cliente;
+                                    clientes.RemoveAll(c => c.cliente == toRemove);
+                                }
+                                if (toRemove != null)
+                                {
+                                    toRemove.Close();
+                                    var resp = $"Usuário {apelidoRem} desconectado com sucesso.";
+                                    stream.Write(Encoding.UTF8.GetBytes(resp));
+                                    Console.WriteLine($"Usuário {apelidoRem} desconectado via comando.");
+                                }
+                                else
+                                {
+                                    stream.Write(Encoding.UTF8.GetBytes($"Usuário {apelidoRem} não encontrado."));
                                 }
                             }
-                            if (clienteParaRemover != null)
-                                clientes.RemoveAll(c => c.cliente == clienteParaRemover);
-                        }
-
-                        if (clienteParaRemover != null)
-                        {
-                            clienteParaRemover.Close();
-                            byte[] resposta = Encoding.UTF8.GetBytes($"Usuário {apelidoParaDesconectar} desconectado com sucesso.");
-                            stream.Write(resposta, 0, resposta.Length);
-                            Console.WriteLine($"Usuário {apelidoParaDesconectar} desconectado via comando.");
-                        }
-                        else
-                        {
-                            byte[] resposta = Encoding.UTF8.GetBytes($"Usuário {apelidoParaDesconectar} não encontrado.");
-                            stream.Write(resposta, 0, resposta.Length);
-                        }
-                    }
-                    else if (mensagem == "/status")
-                    {
-                        int total;
-                        lock (locker)
-                            total = clientes.Count;
-
-                        string status = $"Servidor online - Usuários conectados: {total} - Tempo uptime: {DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime}";
-                        byte[] resposta = Encoding.UTF8.GetBytes(status);
-                        stream.Write(resposta, 0, resposta.Length);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Mensagem recebida: {mensagem}");
-                        Broadcast(mensagem, cliente);
+                            else if (mensagem == "/status")
+                            {
+                                int cnt;
+                                lock (locker) cnt = clientes.Count;
+                                var uptime = DateTime.Now - Process.GetCurrentProcess().StartTime;
+                                var status = $"Servidor online - Usuários conectados: {cnt} - Uptime: {uptime}";
+                                stream.Write(Encoding.UTF8.GetBytes(status));
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Mensagem recebida: {mensagem}");
+                                Broadcast(mensagem, cliente);
+                            }
+                            break;
                     }
                 }
             }
@@ -231,40 +215,32 @@ namespace Chat_TCP
             {
                 lock (locker)
                 {
-                    var clienteRemover = clientes.Find(c => c.cliente == cliente);
-                    if (clienteRemover.cliente != null)
-                        clientes.Remove(clienteRemover);
+                    var rem = clientes.Find(c => c.cliente == cliente);
+                    if (rem.cliente != null)
+                        clientes.Remove(rem);
                 }
                 cliente.Close();
                 Console.WriteLine($"Cliente desconectado. Total atual: {clientes.Count}");
             }
         }
 
-
         static void Broadcast(string mensagem, TcpClient remetente)
         {
             byte[] dados = Encoding.UTF8.GetBytes(mensagem);
-
             lock (locker)
             {
-                foreach (var c in clientes)
+                foreach (var c in clientes.Where(c => c.cliente != remetente))
                 {
-                    if (c.cliente != remetente)
+                    try
                     {
-                        try
-                        {
-                            NetworkStream stream = c.cliente.GetStream();
-                            stream.Write(dados, 0, dados.Length);
-                        }
-                        catch
-                        {
-                            // Ignorar cliente desconectado
-                        }
+                        c.cliente.GetStream().Write(dados, 0, dados.Length);
+                    }
+                    catch
+                    {
+                        // Ignorar falhas individuais
                     }
                 }
             }
         }
     }
 }
-
-
