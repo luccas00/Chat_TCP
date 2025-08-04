@@ -43,17 +43,11 @@ namespace Chat_TCP
 
             string interfaceAlvo = "enp2s0";
 
-            string ipWifi = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(nic =>
-                    nic.Name.Equals(interfaceAlvo, StringComparison.OrdinalIgnoreCase) &&
-                    nic.OperationalStatus == OperationalStatus.Up)
-                .SelectMany(nic =>
-                    nic.GetIPProperties().UnicastAddresses
-                        .Where(addr =>
-                            addr.Address.AddressFamily == AddressFamily.InterNetwork &&
-                            !IPAddress.IsLoopback(addr.Address)))
-                .Select(addr => addr.Address.ToString())
-                .FirstOrDefault() ?? "127.0.0.1";
+            string ipWifi = Dns.GetHostEntry(Dns.GetHostName())
+                .AddressList
+                .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip))
+                ?.ToString() ?? "127.0.0.1";
+
 
             StartDiscoveryResponder(ipWifi);
             
