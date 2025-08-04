@@ -92,9 +92,13 @@ namespace Chat_TCP
             tApi.Join();
         }
 
+
         static void StartDiscoveryResponder(string serverIp)
         {
-            var udp = new UdpClient(30001); // Porta de discovery
+            var udp = new UdpClient(AddressFamily.InterNetwork);
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            udp.Client.Bind(new IPEndPoint(IPAddress.Any, 30001));
+
             Thread responder = new(() =>
             {
                 var remoteEP = new IPEndPoint(IPAddress.Any, 0);
@@ -103,19 +107,14 @@ namespace Chat_TCP
                     try
                     {
                         byte[] request = udp.Receive(ref remoteEP);
-                        string msg = Encoding.UTF8.GetString(request);
-                        if (msg == "DISCOVER_SERVER")
+                        if (Encoding.UTF8.GetString(request) == "DISCOVER_SERVER")
                         {
-                            // Handshake: responde diretamente ao client
-                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Discovery request recebido de {remoteEP.Address}. Respondendo com {serverIp}");
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Discovery request de {remoteEP.Address}. Respondendo com {serverIp}");
                             byte[] reply = Encoding.UTF8.GetBytes(serverIp);
                             udp.Send(reply, reply.Length, remoteEP);
                         }
                     }
-                    catch
-                    {
-                        // Log de erro ou retry
-                    }
+                    catch { /* log ou retry */ }
                 }
             })
             { IsBackground = true };

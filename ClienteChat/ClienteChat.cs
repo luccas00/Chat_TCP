@@ -66,33 +66,27 @@ namespace Chat_TCP
         //    return null; // Nenhuma resposta no SLA definido
         //}
 
+        // CLIENTE: dispara hand-shake e retorna o IP enviado pelo servidor
         public string DiscoverServer(int timeoutMs = 3000)
         {
-            // 1) obtém o IPv4 ativo (não-loopback)
-            var localIp = Dns.GetHostAddresses(Dns.GetHostName())
-                .First(a => a.AddressFamily == AddressFamily.InterNetwork
-                         && !IPAddress.IsLoopback(a));
-
-            // 2) bind explícito à NIC correta, porta ephem.
-            using var udp = new UdpClient(new IPEndPoint(localIp, 0));
+            using var udp = new UdpClient(AddressFamily.InterNetwork); // porta efêmera
             udp.EnableBroadcast = true;
             udp.Client.ReceiveTimeout = timeoutMs;
 
-            // 3) envia o discovery
-            var discoverEP = new IPEndPoint(IPAddress.Broadcast, 30001);
-            var payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
-            udp.Send(payload, payload.Length, discoverEP);
+            byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
+            // envia para o listener de discovery do servidor (porta 30001)
+            udp.Send(payload, payload.Length, new IPEndPoint(IPAddress.Broadcast, 30001));
 
-            // 4) recebe resposta ou time-out
             try
             {
                 var remoteEP = new IPEndPoint(IPAddress.Any, 0);
-                var response = udp.Receive(ref remoteEP);
+                byte[] response = udp.Receive(ref remoteEP);
+                // decodifica o serverIp que o servidor colocou no payload de reply
                 return Encoding.UTF8.GetString(response);
             }
             catch (SocketException)
             {
-                return null; // falha ou time-out
+                return null; // sem resposta dentro do SLA
             }
         }
 
@@ -112,12 +106,14 @@ namespace Chat_TCP
                         string discoveredIp = Encoding.UTF8.GetString(data);
                         Invoke((MethodInvoker)(() => txtServerIp.Text = discoveredIp));
                     }
-                    catch { /* Log ou ignore */ }
+                    catch { /* ignore */ }
                 }
             })
             { IsBackground = true };
             udpListener.Start();
+
         }
+
 
         private void InitializeUI()
         {
