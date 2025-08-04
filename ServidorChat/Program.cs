@@ -41,12 +41,32 @@ namespace Chat_TCP
             //    .FirstOrDefault()
             //    ?? "127.0.0.1"; // fallback caso não encontre Wi-Fi
 
-            string interfaceAlvo = "enp2s0";
+            string sistemaOperacional = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+            Console.WriteLine($"Sistema Operacional: {sistemaOperacional}");
 
-            string ipWifi = Dns.GetHostEntry(Dns.GetHostName())
+            string ipWifi = "";
+
+            if (sistemaOperacional.Contains("Windows", StringComparison.OrdinalIgnoreCase))
+            {
+                ipWifi = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(nic =>
+                    nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 &&
+                    nic.OperationalStatus == OperationalStatus.Up)
+                .SelectMany(nic =>
+                    nic.GetIPProperties()
+                       .UnicastAddresses
+                       .Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork))
+                .Select(u => u.Address.ToString())
+                .FirstOrDefault()
+                ?? "127.0.0.1"; // fallback caso não encontre Wi-Fi
+            }
+            else
+            {
+                ipWifi = Dns.GetHostEntry(Dns.GetHostName())
                 .AddressList
                 .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip))
                 ?.ToString() ?? "127.0.0.1";
+            }
 
 
             StartDiscoveryResponder(ipWifi);
