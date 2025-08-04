@@ -41,30 +41,61 @@ namespace Chat_TCP
             
         }
 
+        //public string DiscoverServer(int timeoutMs = 3000)
+        //{
+        //    using var udp = new UdpClient();
+        //    udp.EnableBroadcast = true;
+        //    var discoverEP = new IPEndPoint(IPAddress.Broadcast, 30001);
+        //    byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
+
+        //    Console.WriteLine("Enviando broadcast para descobrir servidor...");
+
+        //    // Envia broadcast discovery
+        //    udp.Send(payload, payload.Length, discoverEP);
+
+        //    // Define timeout para reduzir latência
+        //    var asyncResult = udp.BeginReceive(null, null);
+        //    if (asyncResult.AsyncWaitHandle.WaitOne(timeoutMs))
+        //    {
+        //        IPEndPoint serverEP = null;
+        //        byte[] response = udp.EndReceive(asyncResult, ref serverEP);
+        //        // Payload contem o IP do servidor
+        //        return Encoding.UTF8.GetString(response);
+        //    }
+
+        //    return null; // Nenhuma resposta no SLA definido
+        //}
+
         public string DiscoverServer(int timeoutMs = 3000)
         {
-            using var udp = new UdpClient();
+            // 1) obtém o IPv4 ativo (não-loopback)
+            var localIp = Dns.GetHostAddresses(Dns.GetHostName())
+                .First(a => a.AddressFamily == AddressFamily.InterNetwork
+                         && !IPAddress.IsLoopback(a));
+
+            // 2) bind explícito à NIC correta, porta ephem.
+            using var udp = new UdpClient(new IPEndPoint(localIp, 0));
             udp.EnableBroadcast = true;
+            udp.Client.ReceiveTimeout = timeoutMs;
+
+            // 3) envia o discovery
             var discoverEP = new IPEndPoint(IPAddress.Broadcast, 30001);
-            byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
-
-            Console.WriteLine("Enviando broadcast para descobrir servidor...");
-
-            // Envia broadcast discovery
+            var payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
             udp.Send(payload, payload.Length, discoverEP);
 
-            // Define timeout para reduzir latência
-            var asyncResult = udp.BeginReceive(null, null);
-            if (asyncResult.AsyncWaitHandle.WaitOne(timeoutMs))
+            // 4) recebe resposta ou time-out
+            try
             {
-                IPEndPoint serverEP = null;
-                byte[] response = udp.EndReceive(asyncResult, ref serverEP);
-                // Payload contem o IP do servidor
+                var remoteEP = new IPEndPoint(IPAddress.Any, 0);
+                var response = udp.Receive(ref remoteEP);
                 return Encoding.UTF8.GetString(response);
             }
-
-            return null; // Nenhuma resposta no SLA definido
+            catch (SocketException)
+            {
+                return null; // falha ou time-out
+            }
         }
+
 
         private void StartUdpDiscovery()
         {

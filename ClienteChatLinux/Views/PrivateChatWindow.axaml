@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="ClienteChatLinux.PrivateChatWindow"
+        Title="PrivateChatWindow">
+	
+	<DockPanel>
+
+		<!-- Histórico de Mensagens -->
+		<TextBox x:Name="MessagesBox"
+				 IsReadOnly="True"
+				 AcceptsReturn="True"
+				 ScrollViewer.VerticalScrollBarVisibility="Auto"
+				 DockPanel.Dock="Top"
+				 Height="200"
+				 Margin="5"/>
+
+		<!-- Input + Botão Enviar -->
+		<DockPanel DockPanel.Dock="Bottom" Margin="5" Height="30">
+			<TextBox x:Name="InputBox"
+					 DockPanel.Dock="Left"
+					 HorizontalAlignment="Stretch"/>
+			<Button x:Name="SendButton"
+					Content="Enviar"
+					DockPanel.Dock="Right"
+					Width="75"
+					Margin="5,0,0,0"/>
+		</DockPanel>
+
+	</DockPanel>
+	
+</Window>
