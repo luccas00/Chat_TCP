@@ -29,17 +29,32 @@ namespace Chat_TCP
             listenerApi.Start();
 
             // 1) Resolve o IPv4 da interface Wi-Fi operante
+            //string ipWifi = NetworkInterface.GetAllNetworkInterfaces()
+            //    .Where(nic =>
+            //        nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 &&
+            //        nic.OperationalStatus == OperationalStatus.Up)
+            //    .SelectMany(nic =>
+            //        nic.GetIPProperties()
+            //           .UnicastAddresses
+            //           .Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork))
+            //    .Select(u => u.Address.ToString())
+            //    .FirstOrDefault()
+            //    ?? "127.0.0.1"; // fallback caso não encontre Wi-Fi
+
             string ipWifi = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(nic =>
-                    nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 &&
-                    nic.OperationalStatus == OperationalStatus.Up)
+                    nic.OperationalStatus == OperationalStatus.Up &&
+                    !nic.Description.ToLower().Contains("loopback") &&
+                    !nic.Name.ToLower().Contains("lo"))
                 .SelectMany(nic =>
-                    nic.GetIPProperties()
-                       .UnicastAddresses
-                       .Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork))
-                .Select(u => u.Address.ToString())
+                    nic.GetIPProperties().UnicastAddresses
+                        .Where(addr =>
+                            addr.Address.AddressFamily == AddressFamily.InterNetwork &&
+                            !IPAddress.IsLoopback(addr.Address)))
+                .Select(addr => addr.Address.ToString())
                 .FirstOrDefault()
-                ?? "127.0.0.1"; // fallback caso não encontre Wi-Fi
+                ?? "127.0.0.1";
+
 
             StartDiscoveryResponder(ipWifi);
             
