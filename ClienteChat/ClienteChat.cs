@@ -76,7 +76,8 @@ namespace Chat_TCP
             byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
             var broadcastIp = IPAddress.Parse("192.168.1.255");
             // envia para o listener de discovery do servidor (porta 30001)
-            udp.Send(payload, payload.Length, new IPEndPoint(broadcastIp, 30001));
+            //udp.Send(payload, payload.Length, new IPEndPoint(broadcastIp, 30001));
+            udp.Send(payload, payload.Length, new IPEndPoint(IPAddress.Broadcast, 30001));
 
             try
             {
