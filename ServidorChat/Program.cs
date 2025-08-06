@@ -276,17 +276,14 @@ namespace Chat_TCP
             {
                 foreach (var c in clientes)
                 {
-                    if (c.cliente != remetente)
+                    try
                     {
-                        try
-                        {
-                            NetworkStream stream = c.cliente.GetStream();
-                            stream.Write(dados, 0, dados.Length);
-                        }
-                        catch
-                        {
-                            // Ignorar cliente desconectado
-                        }
+                        NetworkStream stream = c.cliente.GetStream();
+                        stream.Write(dados, 0, dados.Length);
+                    }
+                    catch
+                    {
+                        // Ignorar cliente desconectado
                     }
                 }
             }
