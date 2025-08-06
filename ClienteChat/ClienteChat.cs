@@ -4,6 +4,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Linq;
 
 namespace Chat_TCP
 {
@@ -66,31 +70,121 @@ namespace Chat_TCP
         //    return null; // Nenhuma resposta no SLA definido
         //}
 
-        // CLIENTE: dispara hand-shake e retorna o IP enviado pelo servidor
+        static IPAddress GetBroadcastAddress(IPAddress address, IPAddress mask)
+        {
+            var ip = address.GetAddressBytes();
+            var m = mask.GetAddressBytes();
+            var b = new byte[ip.Length];
+
+            for (int i = 0; i < ip.Length; i++)
+                b[i] = (byte)(ip[i] | (m[i] ^ 0xFF));
+
+            return new IPAddress(b);
+        }
+
         public string DiscoverServer(int timeoutMs = 3000)
         {
-            using var udp = new UdpClient(AddressFamily.InterNetwork); // porta efêmera
+            // 1) Descobre o IP local usado na rota padrão
+            IPAddress localIp;
+            using (var sock = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+            {
+                sock.Connect("8.8.8.8", 65530);
+                localIp = ((IPEndPoint)sock.LocalEndPoint).Address;
+            }
+
+            // 2) Encontra a interface IPv4 que possui esse IP
+            var ni = NetworkInterface.GetAllNetworkInterfaces()
+                .FirstOrDefault(n =>
+                    n.OperationalStatus == OperationalStatus.Up &&
+                    !n.Name.ToLower().Contains("loopback") &&
+                    n.GetIPProperties()
+                     .UnicastAddresses
+                     .Any(ua => ua.Address.Equals(localIp)));
+            if (ni == null)
+                throw new InvalidOperationException("Nenhuma interface IPv4 válida encontrada.");
+
+            var ua = ni.GetIPProperties()
+                              .UnicastAddresses
+                              .First(ua => ua.Address.Equals(localIp));
+            var broadcast = GetBroadcastAddress(localIp, ua.IPv4Mask);
+
+            // 3) Envia DISCOVER_SERVER para a porta 30001 via broadcast calculado
+            using var udp = new UdpClient(AddressFamily.InterNetwork);
             udp.EnableBroadcast = true;
             udp.Client.ReceiveTimeout = timeoutMs;
 
-            byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
-            var broadcastIp = IPAddress.Parse("192.168.1.255");
-            // envia para o listener de discovery do servidor (porta 30001)
-            //udp.Send(payload, payload.Length, new IPEndPoint(broadcastIp, 30001));
-            udp.Send(payload, payload.Length, new IPEndPoint(IPAddress.Broadcast, 30001));
+            var payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
+            udp.Send(payload, payload.Length, new IPEndPoint(broadcast, 30001));
 
+            // 4) Aguarda a resposta do servidor e retorna o IP contido no payload
             try
             {
                 var remoteEP = new IPEndPoint(IPAddress.Any, 0);
-                byte[] response = udp.Receive(ref remoteEP);
-                // decodifica o serverIp que o servidor colocou no payload de reply
-                return Encoding.UTF8.GetString(response);
+                var resp = udp.Receive(ref remoteEP);
+                return Encoding.UTF8.GetString(resp);  // serverIp enviado pelo servidor
             }
             catch (SocketException)
             {
-                return null; // sem resposta dentro do SLA
+                return null;  // timeout ou falha de rede
             }
+
         }
+
+        //// CLIENTE: dispara hand-shake e retorna o IP enviado pelo servidor
+        //public string DiscoverServer(int timeoutMs = 3000)
+        //{
+        //    //using var udp = new UdpClient(AddressFamily.InterNetwork); // porta efêmera
+        //    //udp.EnableBroadcast = true;
+        //    //udp.Client.ReceiveTimeout = timeoutMs;
+
+        //    //byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
+        //    //var broadcastIp = IPAddress.Parse("192.168.1.255");
+        //    //// envia para o listener de discovery do servidor (porta 30001)
+        //    ////udp.Send(payload, payload.Length, new IPEndPoint(broadcastIp, 30001));
+        //    //udp.Send(payload, payload.Length, new IPEndPoint(IPAddress.Broadcast, 30001));
+
+        //    // 2) Identifique a interface IPv4 operacional
+        //    var ni = NetworkInterface
+        //        .GetAllNetworkInterfaces()
+        //        .FirstOrDefault(n =>
+        //            n.OperationalStatus == OperationalStatus.Up &&
+        //            n.GetIPProperties()
+        //             .UnicastAddresses
+        //             .Any(ua => ua.Address.AddressFamily == AddressFamily.InterNetwork));
+        //    if (ni == null)
+        //        throw new InvalidOperationException("Nenhuma interface IPv4 ativa encontrada");
+
+        //    // 3) Extraia IP e máscara
+        //    var uni = ni.GetIPProperties()
+        //                .UnicastAddresses
+        //                .First(ua => ua.Address.AddressFamily == AddressFamily.InterNetwork);
+        //    var ipLocal = uni.Address;
+        //    var mask = uni.IPv4Mask;
+
+        //    // 4) Gere o Broadcast a partir de IP + máscara
+        //    var broadcastIp = GetBroadcastAddress(ipLocal, mask);
+
+        //    // 5) Dispare o broadcast para 30001
+        //    using var udpClient = new UdpClient(AddressFamily.InterNetwork);
+        //    udpClient.EnableBroadcast = true;
+        //    udpClient.Send(
+        //        Encoding.UTF8.GetBytes("DISCOVER_SERVER"),
+        //        "DISCOVER_SERVER".Length,
+        //        new IPEndPoint(broadcastIp, 30001)
+        //    );
+
+        //    try
+        //    {
+        //        var remoteEP = new IPEndPoint(IPAddress.Any, 0);
+        //        byte[] response = udpClient.Receive(ref remoteEP);
+        //        // decodifica o serverIp que o servidor colocou no payload de reply
+        //        return Encoding.UTF8.GetString(response);
+        //    }
+        //    catch (SocketException)
+        //    {
+        //        return null; // sem resposta dentro do SLA
+        //    }
+        //}
 
 
         private void StartUdpDiscovery()

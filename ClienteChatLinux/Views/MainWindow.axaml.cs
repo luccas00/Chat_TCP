@@ -67,7 +67,7 @@ namespace ClienteChatLinux.Views
                 privateServerThread = new Thread(PrivateServerLoop) { IsBackground = true };
                 privateServerThread.Start();
 
-                // Conexão principal
+                // Conexï¿½o principal
                 client = new TcpClient();
                 client.Connect(ip, port);
                 stream = client.GetStream();
@@ -213,7 +213,7 @@ namespace ClienteChatLinux.Views
 
         private void UpdateUserList(string data)
         {
-            // Constrói a lista de strings
+            // Constrï¿½i a lista de strings
             List<string> lista = data
                 .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(line =>
@@ -223,7 +223,7 @@ namespace ClienteChatLinux.Views
                 })
                 .ToList();
 
-            // Atualiza ItemsSource, não Items
+            // Atualiza ItemsSource, nï¿½o Items
             UsersList.ItemsSource = lista;
         }
 
