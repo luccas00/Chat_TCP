@@ -66,7 +66,7 @@ public class Controller {
         listener.start();
     }
 
-    @GetMapping("/messages")
+    @GetMapping("/messages/get")
     public ResponseEntity<List<String>> getMessages() {
         return ResponseEntity.ok(messages);
     }
@@ -154,7 +154,7 @@ public class Controller {
         }
     }
 
-    @PostMapping("/enviar")
+    @PostMapping("/messages/send")
     public ResponseEntity<String> enviarMensagemBroadcast(@RequestBody ChatDTO dto) {
         String conteudo = "[Broadcast] " + dto.getApelido() + ": " + dto.getMensagem();
         // Send via admin port as chat client

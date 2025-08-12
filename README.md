@@ -92,33 +92,46 @@ Componentes:
 ## ▶️ Execução (resumo)
 ### Servidor (.NET)
 ```bash
-dotnet run --project src/ServidorTcp
+cd ..\Chat_TCP\ServidorChat
+dotnet run
 ```
 ### Cliente Windows (WinForms)
 ```bash
-dotnet run --project src/ClienteWinForms
+cd ..\Chat_TCP\ClienteChat
+dotnet run
 ```
 
 ### Cliente Linux (Avalonia)
 ```bash
-dotnet run --project src/ClienteAvalonia
+cd ..\Chat_TCP\ClienteChatLinux
+dotnet run
 ```
 
-### API REST (Spring Boot)
+### API REST (Spring Boot) (Extra)
 ```bash
-mvn spring-boot:run -pl api-java
+cd ..\Chat_TCP\API_Chat_TCP\
+mvn spring-boot:run
+```
+
+### WebApp Chat (React) (Extra)
+```bash
+cd ..\Chat_TCP\WebApp\chat-web
+npm install
+npm start
 ```
 
 ## 🌐 Endpoints REST
 
 Base URL: `http://<IP_SERVIDOR_API>:8080`
 
-| Método | Endpoint                | Descrição                                                     |
-|--------|-------------------------|---------------------------------------------------------------|
-| GET    | `/api/chat/status`      | Retorna status do servidor (uptime, conectados).             |
-| GET    | `/api/chat/lista`       | Lista usuários conectados (`apelido;ip;portaPrivada`).       |
-| POST   | `/api/chat/enviar`      | Envia mensagem broadcast para todos os clientes conectados.  |
-| POST   | `/api/chat/desconectar` | Desconecta um cliente específico pelo apelido.               |
+| Método | Endpoint                              | Descrição                                                |
+|--------|---------------------------------------|----------------------------------------------------------|
+| GET    | `/api/status`                         | Retorna status do servidor (uptime, conectados).         |
+| GET    | `/api/usuarios/listar`                | Lista usuários conectados (`apelido;ip;portaPrivada`).   |
+| GET    | `/api/usuarios/count`                 | Contagem de usuários conectados.                         |
+| POST   | `/api/messages/send'                  | Envia mensagem broadcast para todos os clientes.         |
+| GET    | `/api/messages/get'                   | Obtem mensagens enviadas por broadcast.                  |
+| GET    | `/api/desconectar?apelido={apelido}`  | Desconecta um cliente específico pelo apelido.           |
 
 ---
 
@@ -126,26 +139,37 @@ Base URL: `http://<IP_SERVIDOR_API>:8080`
 
 **Consultar Status**
 ```bash
-curl -X GET http://localhost:8080/api/chat/status
+curl --location 'http://localhost:8080/api/status'
 ```
 
 **Listar Usuários**
 ```bash
-curl -X GET http://localhost:8080/api/chat/lista
+curl --location 'http://localhost:8080/api/usuarios/listar'
+```
+
+**Contagem de Usuários**
+```bash
+curl --location 'http://localhost:8080/api/usuarios/count'
 ```
 
 **Enviar Broadcast**
 ```bash
-curl -X POST http://localhost:8080/api/chat/enviar \
-  -H "Content-Type: application/json" \
-  -d '{"mensagem": "Servidor enviou esta mensagem!"}'
+curl --location 'http://localhost:8080/api/messages/send' \
+--header 'Content-Type: application/json' \
+--data '{
+  "mensagem": "Olá a todos, esta é uma mensagem de broadcast enviada via Spring Boot."
+}
+'
+```
+
+**Receber Broadcast**
+```bash
+curl --location 'http://localhost:8080/api/messages/get'
 ```
 
 **Desconectar Usuário**
 ```bash
-curl -X POST http://localhost:8080/api/chat/desconectar \
-  -H "Content-Type: application/json" \
-  -d '{"apelido": "Joao"}'
+curl --location 'http://localhost:8080/api/desconectar?apelido=Luccas'
 ```
 
 ## 📈 Diagramas
