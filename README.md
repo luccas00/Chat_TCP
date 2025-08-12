@@ -176,7 +176,7 @@ flowchart LR
         CH --> AV
 
         WF -. "Chat Privado
-            (porta efêmera)" .- AV
+            (porta efêmera do cliente B)" .- AV
 
         UDNS <-- "DISCOVER_SERVER" --> WF
         UDNS <-- "DISCOVER_SERVER" --> AV
@@ -192,6 +192,7 @@ flowchart LR
             Porta: 1990"]
     end
 
-    SB --- ADM
-    FE --> SB
+    SB --> ADM
+    SB <---> CH
+    FE <---> SB
 ```
