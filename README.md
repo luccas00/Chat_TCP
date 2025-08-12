@@ -87,6 +87,7 @@ Interface web simples para enviar e receber mensagens broadcast via API REST.
 - Receber mensagens em tempo real (atualização a cada 1 segundo).
 - Desconectar manualmente.
 
+---
 
 ## 🚪 Portas Padrão
 | Serviço                                | Porta |
