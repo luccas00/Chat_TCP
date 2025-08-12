@@ -290,5 +290,3 @@ namespace Chat_TCP
         }
     }
 }
-
-
