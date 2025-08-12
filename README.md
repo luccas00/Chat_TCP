@@ -96,8 +96,8 @@ Interface web simples para enviar e receber mensagens broadcast via API REST.
 | Servidor TCP (Admin)                   | **2998** |
 | UDP Broadcast (anúncio IP servidor)    | **30000** |
 | UDP Discovery Listener (servidor)      | **30001** |
-| API REST (Spring Boot)                 | **8080** |
-| WebChat (React – opcional)             | **1990** |
+| API REST Spring Boot (Extra)           | **8080** |
+| WebChat React (Extra)                  | **1990** |
 
 > As portas privadas dos clientes são **efêmeras** (alocadas dinamicamente) e divulgadas ao servidor no handshake.
 
