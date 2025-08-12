@@ -27,7 +27,9 @@ import jakarta.annotation.PostConstruct;
 @RestController
 @RequestMapping("/api")
 public class Controller {
-private static final String HOST = "192.168.1.176";
+
+    //private static final String HOST = "192.168.1.176";
+    private static final String HOST = "127.0.0.1";
     private static final int CHAT_PORT = 1998;
     private static final int ADMIN_PORT = 2998;
     private static final String APELIDO_API = "API_Chat_TCP";

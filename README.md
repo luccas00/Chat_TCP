@@ -184,7 +184,10 @@ flowchart LR
 
     SB --- ADM
     FE --> SB
+```
 
+
+```mermaid
 sequenceDiagram
     participant A as Cliente_A
     participant S as Servidor_TCP
