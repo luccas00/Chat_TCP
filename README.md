@@ -154,22 +154,29 @@ curl -X POST http://localhost:8080/api/chat/desconectar \
 ```mermaid
 flowchart LR
     subgraph NET["Rede Local"]
-        subgraph SRV["Servidor TCP .NET Console"]
-            CH["Listener Chat\nTCP 1998"]
-            ADM["Listener Admin\nTCP 2998"]
-            UDPB["UDP Broadcast\n30000"]
-            UDNS["UDP Discovery Listener\n30001"]
+        subgraph SRV["Servidor .NET Console"]
+            CH["Listener Chat TCP
+                Porta: 1998"]
+            ADM["Listener Admin TCP
+                 Porta: 2998"]
+            UDPB["UDP Broadcast
+                  Porta: 30000"]
+            UDNS["UDP Discovery Listener
+                  Porta: 30001"]
         end
 
         subgraph CLIENTES["Clientes"]
-            WF["Cliente Windows\nWinForms .NET"]
-            AV["Cliente Linux\nAvalonia .NET"]
+            WF["Cliente Windows
+                WinForms .NET"]
+            AV["Cliente Linux ou macOS
+                Avalonia .NET"]
         end
 
         CH --> WF
         CH --> AV
 
-        WF -. "Chat Privado\n(porta efêmera do cliente B)" .- AV
+        WF -. "Chat Privado
+            (porta efêmera do cliente B)" .- AV
 
         UDNS <-- "DISCOVER_SERVER" --> WF
         UDNS <-- "DISCOVER_SERVER" --> AV
@@ -178,37 +185,13 @@ flowchart LR
     end
 
     subgraph API["Camada de Integração"]
-        SB["API REST Java\nSpring Boot 8080"]
-        FE["WebChat React\n(opcional 1990)"]
+        SB["API REST
+            Java Spring Boot
+            Porta: 8080"]
+        FE["WebApp Chat
+            Porta: 1990"]
     end
 
     SB --- ADM
     FE --> SB
-```
-
-
-```mermaid
-sequenceDiagram
-    participant A as Cliente_A
-    participant S as Servidor_TCP
-    participant B as Cliente_B
-    participant UDNS as Discovery_UDP
-
-    A->>UDNS: DISCOVER_SERVER
-    UDNS-->>A: IP do Servidor
-    A->>S: TCP 1998 | apelidoA;portaPrivadaA
-    S-->>A: Confirmação
-    S-->>A: Lista usuários (/lista)
-
-    A->>S: /lista
-    S-->>A: apelidoB;ipB;portaPrivadaB
-
-    A->>B: TCP ipB:portaPrivadaB | handshake apelidoA
-    B-->>A: Ack
-    A->>B: Mensagem privada
-    B-->>A: Mensagem privada
-
-    A->>S: /status
-    S-->>A: Uptime | Conectados
-
 ```
