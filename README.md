@@ -125,23 +125,26 @@ Base URL: `http://<IP_SERVIDOR_API>:8080`
 **Consultar Status**
 ```bash
 curl -X GET http://localhost:8080/api/chat/status
+```
 
 **Listar Usuários**
 ```bash
 curl -X GET http://localhost:8080/api/chat/lista
+```
 
 **Enviar Broadcast**
 ```bash
 curl -X POST http://localhost:8080/api/chat/enviar \
   -H "Content-Type: application/json" \
   -d '{"mensagem": "Servidor enviou esta mensagem!"}'
+```
 
 **Desconectar Usuário**
 ```bash
 curl -X POST http://localhost:8080/api/chat/desconectar \
   -H "Content-Type: application/json" \
   -d '{"apelido": "Joao"}'
-
+```
 
 ## 📈 Diagramas
 
@@ -201,4 +204,4 @@ sequenceDiagram
 
     A->>S: /status
     S-->>A: Uptime | Conectados
-
+```
