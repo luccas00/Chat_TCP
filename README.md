@@ -210,4 +210,5 @@ sequenceDiagram
 
     A->>S: /status
     S-->>A: Uptime | Conectados
+
 ```
