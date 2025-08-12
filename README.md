@@ -93,19 +93,21 @@ Componentes:
 ### Servidor (.NET)
 ```bash
 dotnet run --project src/ServidorTcp
-
+```
 ### Cliente Windows (WinForms)
 ```bash
 dotnet run --project src/ClienteWinForms
+```
 
 ### Cliente Linux (Avalonia)
 ```bash
 dotnet run --project src/ClienteAvalonia
+```
 
 ### API REST (Spring Boot)
 ```bash
 mvn spring-boot:run -pl api-java
-
+```
 
 ## 🌐 Endpoints REST
 
