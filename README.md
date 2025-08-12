@@ -6,14 +6,23 @@
 ---
 
 ## 📄 Descrição Geral
-Sistema **Cliente/Servidor TCP** com **Descoberta Automática de Servidor (UDP)**, **mensagens broadcast e privadas**, **admin TCP**, **clientes gráficos multiplataforma** e **API REST Java** para integração.
+Sistema **Cliente/Servidor TCP** com **Descoberta Automática de Servidor (UDP)**, **mensagens broadcast e privadas**, **admin TCP**, **clientes gráficos multiplataforma** e recursos **extras** de integração via **API REST Java** e **aplicativo Web React**.
 
-Componentes:
-- **Servidor TCP (.NET)**: gerencia conexões, broadcast e comandos.
-- **Admin TCP**: status, listagem e desconexão remota.
-- **Cliente Windows (WinForms .NET)** e **Cliente Linux (Avalonia .NET)**.
-- **API REST (Java Spring Boot)** para operações remotas.
-- **WebChat React (opcional)**.
+---
+
+## 📌 Escopo
+
+- **Implementações Obrigatórias**:
+  - Servidor TCP com suporte a múltiplos clientes.
+  - Descoberta automática de servidor via UDP.
+  - Troca de mensagens broadcast e privadas.
+  - Cliente gráfico multiplataforma (Windows/Linux).
+  - Comandos administrativos via TCP.
+
+- **Implementações Extras**:
+  - API REST (Java Spring Boot) para integração remota.
+  - Aplicativo Web React para interação com o servidor.
+  - WebChat opcional integrado à API.
 
 ---
 
@@ -21,13 +30,14 @@ Componentes:
 - **.NET 8.0** (C#)
 - **Windows Forms** e **Avalonia UI**
 - **Java 17** + **Spring Boot** + **Maven**
+- **React.js** + **Axios**
 - **TCP Sockets** e **UDP Broadcast**
 - **API REST**
 - **JPA/Hibernate** (no módulo Java)
 
 ---
 
-## ✅ Funcionalidades Implementadas
+## ✅ Funcionalidades Obrigatórias
 - **Servidor TCP com múltiplos listeners**:
   - **Chat** (TCP **1998**): recepção de broadcast, lista e comandos.
   - **Admin** (TCP **2998**): status, listagem, desconexão.
@@ -47,11 +57,36 @@ Componentes:
   - `/status` — uptime + conectados
 - **Clientes Multi-plataforma**:
   - **WinForms** (Windows).
-  - **Avalonia** (Linux).
-- **Integração REST (Java)**:
-  - Endpoints administrativos e de consulta (módulo Spring Boot).
+  - **Avalonia** (Linux/macOS).
 
 ---
+
+## 🔹 Funcionalidades Extras
+
+### 1. API REST (Java Spring Boot)
+Permite administração e consulta remota dos clientes e mensagens.
+
+**Principais Endpoints:**
+| Método | Endpoint                              | Descrição                                                |
+|--------|---------------------------------------|----------------------------------------------------------|
+| GET    | `/api/status`                         | Retorna status do servidor (uptime, conectados).         |
+| GET    | `/api/usuarios/listar`                | Lista usuários conectados (`apelido;ip;portaPrivada`).   |
+| GET    | `/api/usuarios/count`                 | Contagem de usuários conectados.                         |
+| POST   | `/api/messages/send`                  | Envia mensagem broadcast para todos os clientes.         |
+| GET    | `/api/messages/get`                   | Obtém mensagens enviadas por broadcast.                  |
+| GET    | `/api/desconectar?apelido={apelido}`  | Desconecta um cliente específico pelo apelido.           |
+
+---
+
+### 2. Aplicativo Web React
+Interface web simples para enviar e receber mensagens broadcast via API REST.
+
+**Principais Recursos:**
+- Conectar com apelido.
+- Enviar mensagens broadcast.
+- Receber mensagens em tempo real (atualização a cada 1 segundo).
+- Desconectar manualmente.
+
 
 ## 🚪 Portas Padrão
 | Serviço                                | Porta |
@@ -72,6 +107,7 @@ Componentes:
 - **Cliente Windows (WinForms)**: `ClienteChat.cs`, `JanelaChatPrivado.cs`
 - **Cliente Linux (Avalonia)**: `MainWindow.axaml.cs`, `PrivateChatWindow.axaml.cs`, `App.axaml.cs`, `Program.cs`
 - **API REST (Java)**: `ApiChatTcpApplication.java`, `Controller.java`, `ChatDTO.java`
+- **WebApp React**: `App.jsx`
 
 ---
 
@@ -86,6 +122,10 @@ Componentes:
    - Abre **Chat Privado** conectando direto no peer (`ip:portaPrivada`).
 4. **Admin**:
    - Comandos `/status`, `/count`, `/lista`, `/desconectar <apelido>`.
+5. **API REST (extra):**:
+   - Permite listar usuários, enviar broadcast, derrubar clientes..
+6. **WebApp React (extra)**:
+   - Consome a API REST para enviar/receber mensagens..
 
 ---
 
@@ -101,7 +141,7 @@ cd ..\Chat_TCP\ClienteChat
 dotnet run
 ```
 
-### Cliente Linux (Avalonia)
+### Cliente Linux e macOS (Avalonia)
 ```bash
 cd ..\Chat_TCP\ClienteChatLinux
 dotnet run
@@ -120,7 +160,7 @@ npm install
 npm start
 ```
 
-## 🌐 Endpoints REST
+## 🌐 Endpoints REST (Extra)
 
 Base URL: `http://<IP_SERVIDOR_API>:8080`
 
@@ -129,13 +169,13 @@ Base URL: `http://<IP_SERVIDOR_API>:8080`
 | GET    | `/api/status`                         | Retorna status do servidor (uptime, conectados).         |
 | GET    | `/api/usuarios/listar`                | Lista usuários conectados (`apelido;ip;portaPrivada`).   |
 | GET    | `/api/usuarios/count`                 | Contagem de usuários conectados.                         |
-| POST   | `/api/messages/send'                  | Envia mensagem broadcast para todos os clientes.         |
-| GET    | `/api/messages/get'                   | Obtem mensagens enviadas por broadcast.                  |
+| POST   | `/api/messages/send`                  | Envia mensagem broadcast para todos os clientes.         |
+| GET    | `/api/messages/get`                   | Obtem mensagens enviadas por broadcast.                  |
 | GET    | `/api/desconectar?apelido={apelido}`  | Desconecta um cliente específico pelo apelido.           |
 
 ---
 
-### 📌 Exemplos de Uso
+### 📌 Exemplos de Uso (Extra)
 
 **Consultar Status**
 ```bash
