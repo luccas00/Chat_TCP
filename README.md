@@ -93,3 +93,112 @@ Componentes:
 ### Servidor (.NET)
 ```bash
 dotnet run --project src/ServidorTcp
+
+### Cliente Windows (WinForms)
+```bash
+dotnet run --project src/ClienteWinForms
+
+### Cliente Linux (Avalonia)
+```bash
+dotnet run --project src/ClienteAvalonia
+
+### API REST (Spring Boot)
+```bash
+mvn spring-boot:run -pl api-java
+
+
+## 🌐 Endpoints REST
+
+Base URL: `http://<IP_SERVIDOR_API>:8080`
+
+| Método | Endpoint                | Descrição                                                     |
+|--------|-------------------------|---------------------------------------------------------------|
+| GET    | `/api/chat/status`      | Retorna status do servidor (uptime, conectados).             |
+| GET    | `/api/chat/lista`       | Lista usuários conectados (`apelido;ip;portaPrivada`).       |
+| POST   | `/api/chat/enviar`      | Envia mensagem broadcast para todos os clientes conectados.  |
+| POST   | `/api/chat/desconectar` | Desconecta um cliente específico pelo apelido.               |
+
+---
+
+### 📌 Exemplos de Uso
+
+**Consultar Status**
+```bash
+curl -X GET http://localhost:8080/api/chat/status
+
+**Listar Usuários**
+```bash
+curl -X GET http://localhost:8080/api/chat/lista
+
+**Enviar Broadcast**
+```bash
+curl -X POST http://localhost:8080/api/chat/enviar \
+  -H "Content-Type: application/json" \
+  -d '{"mensagem": "Servidor enviou esta mensagem!"}'
+
+**Desconectar Usuário**
+```bash
+curl -X POST http://localhost:8080/api/chat/desconectar \
+  -H "Content-Type: application/json" \
+  -d '{"apelido": "Joao"}'
+
+
+## 📈 Diagramas
+
+### Arquitetura
+```mermaid
+flowchart LR
+    subgraph NET["Rede Local"]
+        subgraph SRV["Servidor TCP .NET Console"]
+            CH["Listener Chat\nTCP 1998"]
+            ADM["Listener Admin\nTCP 2998"]
+            UDPB["UDP Broadcast\n30000"]
+            UDNS["UDP Discovery Listener\n30001"]
+        end
+
+        subgraph CLIENTES["Clientes"]
+            WF["Cliente Windows\nWinForms .NET"]
+            AV["Cliente Linux\nAvalonia .NET"]
+        end
+
+        CH --> WF
+        CH --> AV
+
+        WF -. "Chat Privado\n(porta efêmera do cliente B)" .- AV
+
+        UDNS <-- "DISCOVER_SERVER" --> WF
+        UDNS <-- "DISCOVER_SERVER" --> AV
+        UDPB --> WF
+        UDPB --> AV
+    end
+
+    subgraph API["Camada de Integração"]
+        SB["API REST Java\nSpring Boot 8080"]
+        FE["WebChat React\n(opcional 1990)"]
+    end
+
+    SB --- ADM
+    FE --> SB
+
+sequenceDiagram
+    participant A as Cliente_A
+    participant S as Servidor_TCP
+    participant B as Cliente_B
+    participant UDNS as Discovery_UDP
+
+    A->>UDNS: DISCOVER_SERVER
+    UDNS-->>A: IP do Servidor
+    A->>S: TCP 1998 | apelidoA;portaPrivadaA
+    S-->>A: Confirmação | Lista usuários (/lista)
+
+    A->>S: /lista
+    S-->>A: apelidoB;ipB;portaPrivadaB
+
+    A->>B: TCP ipB:portaPrivadaB | handshake apelidoA
+    B-->>A: Ack
+    A->>B: Mensagem privada
+    B-->>A: Mensagem privada
+
+    A->>S: /status
+    S-->>A: Uptime | Conectados
+
