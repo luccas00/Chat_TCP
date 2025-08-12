@@ -197,7 +197,8 @@ sequenceDiagram
     A->>UDNS: DISCOVER_SERVER
     UDNS-->>A: IP do Servidor
     A->>S: TCP 1998 | apelidoA;portaPrivadaA
-    S-->>A: Confirmação | Lista usuários (/lista)
+    S-->>A: Confirmação
+    S-->>A: Lista usuários (/lista)
 
     A->>S: /lista
     S-->>A: apelidoB;ipB;portaPrivadaB
