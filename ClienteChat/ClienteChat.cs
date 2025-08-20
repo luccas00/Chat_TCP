@@ -45,31 +45,6 @@ namespace Chat_TCP
             
         }
 
-        //public string DiscoverServer(int timeoutMs = 3000)
-        //{
-        //    using var udp = new UdpClient();
-        //    udp.EnableBroadcast = true;
-        //    var discoverEP = new IPEndPoint(IPAddress.Broadcast, 30001);
-        //    byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
-
-        //    Console.WriteLine("Enviando broadcast para descobrir servidor...");
-
-        //    // Envia broadcast discovery
-        //    udp.Send(payload, payload.Length, discoverEP);
-
-        //    // Define timeout para reduzir latência
-        //    var asyncResult = udp.BeginReceive(null, null);
-        //    if (asyncResult.AsyncWaitHandle.WaitOne(timeoutMs))
-        //    {
-        //        IPEndPoint serverEP = null;
-        //        byte[] response = udp.EndReceive(asyncResult, ref serverEP);
-        //        // Payload contem o IP do servidor
-        //        return Encoding.UTF8.GetString(response);
-        //    }
-
-        //    return null; // Nenhuma resposta no SLA definido
-        //}
-
         static IPAddress GetBroadcastAddress(IPAddress address, IPAddress mask)
         {
             var ip = address.GetAddressBytes();
@@ -129,64 +104,6 @@ namespace Chat_TCP
             }
 
         }
-
-        //// CLIENTE: dispara hand-shake e retorna o IP enviado pelo servidor
-        //public string DiscoverServer(int timeoutMs = 3000)
-        //{
-        //    //using var udp = new UdpClient(AddressFamily.InterNetwork); // porta efêmera
-        //    //udp.EnableBroadcast = true;
-        //    //udp.Client.ReceiveTimeout = timeoutMs;
-
-        //    //byte[] payload = Encoding.UTF8.GetBytes("DISCOVER_SERVER");
-        //    //var broadcastIp = IPAddress.Parse("192.168.1.255");
-        //    //// envia para o listener de discovery do servidor (porta 30001)
-        //    ////udp.Send(payload, payload.Length, new IPEndPoint(broadcastIp, 30001));
-        //    //udp.Send(payload, payload.Length, new IPEndPoint(IPAddress.Broadcast, 30001));
-
-        //    // 2) Identifique a interface IPv4 operacional
-        //    var ni = NetworkInterface
-        //        .GetAllNetworkInterfaces()
-        //        .FirstOrDefault(n =>
-        //            n.OperationalStatus == OperationalStatus.Up &&
-        //            n.GetIPProperties()
-        //             .UnicastAddresses
-        //             .Any(ua => ua.Address.AddressFamily == AddressFamily.InterNetwork));
-        //    if (ni == null)
-        //        throw new InvalidOperationException("Nenhuma interface IPv4 ativa encontrada");
-
-        //    // 3) Extraia IP e máscara
-        //    var uni = ni.GetIPProperties()
-        //                .UnicastAddresses
-        //                .First(ua => ua.Address.AddressFamily == AddressFamily.InterNetwork);
-        //    var ipLocal = uni.Address;
-        //    var mask = uni.IPv4Mask;
-
-        //    // 4) Gere o Broadcast a partir de IP + máscara
-        //    var broadcastIp = GetBroadcastAddress(ipLocal, mask);
-
-        //    // 5) Dispare o broadcast para 30001
-        //    using var udpClient = new UdpClient(AddressFamily.InterNetwork);
-        //    udpClient.EnableBroadcast = true;
-        //    udpClient.Send(
-        //        Encoding.UTF8.GetBytes("DISCOVER_SERVER"),
-        //        "DISCOVER_SERVER".Length,
-        //        new IPEndPoint(broadcastIp, 30001)
-        //    );
-
-        //    try
-        //    {
-        //        var remoteEP = new IPEndPoint(IPAddress.Any, 0);
-        //        byte[] response = udpClient.Receive(ref remoteEP);
-        //        // decodifica o serverIp que o servidor colocou no payload de reply
-        //        return Encoding.UTF8.GetString(response);
-        //    }
-        //    catch (SocketException)
-        //    {
-        //        return null; // sem resposta dentro do SLA
-        //    }
-        //}
-
-
         private void StartUdpDiscovery()
         {
             Thread udpListener = new(() =>
@@ -209,7 +126,6 @@ namespace Chat_TCP
             udpListener.Start();
 
         }
-
 
         private void InitializeUI()
         {
