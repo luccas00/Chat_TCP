@@ -21,6 +21,10 @@ namespace ClienteChatLinux.Views
         private string nickname;
         private int privatePort;
 
+        private volatile bool _isConnecting = false;
+        private readonly object _connectLock = new();
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -54,12 +58,30 @@ namespace ClienteChatLinux.Views
         private void OnConnect(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(NicknameBox.Text)) return;
-            nickname = NicknameBox.Text.Trim();
-            var ip = ServerIpBox.Text.Trim();
-            var port = (int)PortBox.Value;
+
+            // Debounce/Reentrância
+            lock (_connectLock)
+            {
+                if (_isConnecting) return;
+                _isConnecting = true;
+            }
+
+            // Bloqueia o botão imediatamente para evitar duplo clique
+            ConnectButton.IsEnabled = false;
 
             try
             {
+                nickname = NicknameBox.Text.Trim();
+                var ip = ServerIpBox.Text.Trim();
+                var port = (int)PortBox.Value;
+
+                // Já conectado? Apenas “no-op”.
+                if (client != null && client.Connected)
+                {
+                    _isConnecting = false;
+                    return;
+                }
+
                 // Servidor Privado TCP
                 privateServer = new TcpListener(IPAddress.Any, 0);
                 privateServer.Start();
@@ -67,11 +89,13 @@ namespace ClienteChatLinux.Views
                 privateServerThread = new Thread(PrivateServerLoop) { IsBackground = true };
                 privateServerThread.Start();
 
-                // Conex�o principal
+                // Conexão principal
                 client = new TcpClient();
                 client.Connect(ip, port);
                 stream = client.GetStream();
-                var dados = $"{nickname};{privatePort}";
+
+                // HANDSHAKE COM DELIMITADOR DE LINHA
+                var dados = $"{nickname};{privatePort}\n";
                 var bytes = Encoding.UTF8.GetBytes(dados);
                 stream.Write(bytes, 0, bytes.Length);
 
@@ -84,13 +108,34 @@ namespace ClienteChatLinux.Views
             catch (Exception ex)
             {
                 MessagesBox.Text += $"[Erro] Falha ao conectar: {ex.Message}\n";
+                // Em caso de falha, reabilita o botão para nova tentativa
+                ConnectButton.IsEnabled = true;
+            }
+            finally
+            {
+                _isConnecting = false;
             }
         }
 
         private void OnDisconnect(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            try { stream?.Close(); client?.Close(); privateServer?.Stop(); } catch { }
-            Dispatcher.UIThread.Post(ResetUI);
+            try
+            {
+                try { stream?.Close(); } catch { }
+                try { client?.Close(); } catch { }
+                try { privateServer?.Stop(); } catch { }
+
+                // Zera flags/refs para permitir nova conexão limpa
+                _isConnecting = false;
+                client = null;
+                stream = null;
+                privateServer = null;
+            }
+            catch { /* noop */ }
+            finally
+            {
+                Dispatcher.UIThread.Post(ResetUI);
+            }
         }
 
         private void OnListUsers(object sender, Avalonia.Interactivity.RoutedEventArgs e)
