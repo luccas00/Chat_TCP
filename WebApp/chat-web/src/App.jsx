@@ -4,7 +4,7 @@ import axios from 'axios';
 //const API_BASE = 'http://localhost:8080/api';
 
 // Use o IP da máquina host para acesso via celular
-const API_BASE = 'http://127.0.0.1:8080/api';
+const API_BASE = 'http://192.168.1.177:8080/api';
 
 
 export default function App() {
@@ -24,13 +24,13 @@ export default function App() {
 
   const fetchMessages = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/messages`);
+      const res = await axios.get(`${API_BASE}/messages/get`);
       setMessages(res.data);
     } catch (err) { console.error(err); }
   };
 
   const handleConnect = () => { if (!nickname.trim()) return; setConnected(true); };
-  const handleSend = async () => { if (!text.trim()) return; await axios.post(`${API_BASE}/enviar`, { apelido: nickname, mensagem: text }); setText(''); };
+  const handleSend = async () => { if (!text.trim()) return; await axios.post(`${API_BASE}/messages/send`, { apelido: nickname, mensagem: text }); setText(''); };
   const handleDisconnect = () => { setConnected(false); setMessages([]); };
 
   return (
