@@ -4,7 +4,7 @@ import axios from 'axios';
 //const API_BASE = 'http://localhost:8080/api';
 
 // Use o IP da máquina host para acesso via celular
-const API_BASE = 'http://192.168.1.177:8080/api';
+const API_BASE = 'http://192.168.1.227:8080/api';
 
 
 export default function App() {

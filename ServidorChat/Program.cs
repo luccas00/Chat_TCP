@@ -45,7 +45,7 @@ namespace Chat_TCP
                        .Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork))
                 .Select(u => u.Address.ToString())
                 .FirstOrDefault()
-                ?? "127.0.0.1"; // fallback caso não encontre Wi-Fi
+                ?? "127.0.0.1";
             }
             else
             {
@@ -90,6 +90,7 @@ namespace Chat_TCP
 
             tChat.Join();
             tApi.Join();
+
         }
 
 
