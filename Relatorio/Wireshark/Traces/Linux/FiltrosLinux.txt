@@ -1,3 +1,57 @@
 (ip.src == 192.168.1.177 && ip.addr == 192.168.1.21)
 
 (ip.src == 192.168.1.177 && ip.addr == 192.168.1.138)
+
+
+O projeto cumpriu a proposta de construir um sistema de chat TCP robusto e multiplataforma. O servidor administra conexões simultâneas, divulga seu endereço via UDP e aceita mensagens em broadcast ou privadas, mantendo uma lista atualizada de usuários e oferecendo comandos administrativos como /lista, /status e /desconectar. Os clientes Windows (WinForms) e Linux/macOS (Avalonia) se integram a esse fluxo, abrindo janelas de conversas privadas automaticamente e mostrando em tempo real quem está online.
+Além do núcleo obrigatório, duas extensões deram ainda mais fôlego ao trabalho. A API REST em Java Spring Boot expõe endpoints para monitoramento, envio de mensagens e controle remoto dos usuários, e o webapp React permite participar do chat direto no navegador. Juntos, esses módulos demonstram como o servidor pode ser administrado e utilizado por múltiplas interfaces, mantendo o mesmo protocolo base.
+Em resumo, o sistema atende aos requisitos principais de redes de computadores e ainda apresenta integrações extras que ampliam a forma de interação, oferecendo uma plataforma completa para estudos e experimentos com comunicação em rede.
+
+
+O projeto cumpriu a proposta de construir um sistema de chat TCP robusto e multiplataforma. O servidor administra conexões simultâneas, divulga seu endereço via UDP e aceita mensagens em broadcast ou privadas, mantendo uma lista atualizada de usuários e oferecendo comandos administrativos como /lista, /status e /desconectar. Os clientes Windows (WinForms) e Linux/macOS (Avalonia) se integram a esse fluxo, abrindo janelas de conversas privadas automaticamente e mostrando em tempo real quem está online.
+Além do núcleo obrigatório, duas extensões deram ainda mais fôlego ao trabalho. A API REST em Java Spring Boot expõe endpoints para monitoramento, envio de mensagens e controle remoto dos usuários, e o webapp React permite participar do chat direto no navegador. Juntos, esses módulos demonstram como o servidor pode ser administrado e utilizado por múltiplas interfaces, mantendo o mesmo protocolo base.
+Em resumo, o sistema atende aos requisitos principais de redes de computadores e ainda apresenta integrações extras que ampliam a forma de interação, oferecendo uma plataforma completa para estudos e experimentos com comunicação em rede.
+
+
+Bibliografia
+Notas de aula da disciplina CSI301 – Redes de Computadores I, Universidade Federal de Ouro Preto (2025).
+KUROSE, J. F.; ROSS, K. W. Redes de Computadores e a Internet: uma abordagem top‑down. 7. ed. Pearson, 2017.
+TANENBAUM, A. S.; WETHERALL, D. Redes de Computadores. 5. ed. Pearson, 2011.
+Documentação oficial do .NET 8.0.
+Documentação oficial do Spring Boot e do React.js.
+A
+
+
+Bibliografia
+Notas de aula da disciplina CSI301 – Redes de Computadores I, Universidade Federal de Ouro Preto (2025).
+KUROSE, J. F.; ROSS, K. W. Redes de Computadores e a Internet: uma abordagem top‑down. 7. ed. Pearson, 2017.
+TANENBAUM, A. S.; WETHERALL, D. Redes de Computadores. 5. ed. Pearson, 2011.
+Documentação oficial do .NET 8.0.
+Documentação oficial do Spring Boot e do React.js.
+A
+
+
+Bibliografia
+Notas de aula da disciplina CSI301 – Redes de Computadores I, Universidade Federal de Ouro Preto (2025).
+KUROSE, J. F.; ROSS, K. W. Redes de Computadores e a Internet: uma abordagem top‑down. 7. ed. Pearson, 2017.
+TANENBAUM, A. S.; WETHERALL, D. Redes de Computadores. 5. ed. Pearson, 2011.
+Documentação oficial do .NET 8.0.
+Documentação oficial do Spring Boot e do React.js.
+A
+
+
+O projeto conseguiu cumprir a proposta de desenvolver um sistema de chat TCP robusto e multiplataforma. O servidor ficou responsável por gerenciar múltiplas conexões, divulgar seu endereço via UDP e aceitar tanto mensagens em broadcast quanto privadas. Além disso, mantém uma lista sempre atualizada dos usuários conectados e oferece comandos administrativos como /lista, /status e /desconectar. Os clientes em Windows (WinForms) e Linux/macOS (Avalonia) se integram naturalmente nesse fluxo, abrindo janelas de conversas privadas automaticamente e mostrando em tempo real quem está online.
+
+Uma parte muito interessante do trabalho foi perceber como diferentes linguagens, stacks, aparelhos e sistemas operacionais podem conviver na mesma rede, comunicando-se de forma integrada. Isso permitiu observar na prática as camadas de aplicação, transporte e rede, confirmando o funcionamento através de análises no Wireshark. No começo houve certa dificuldade para entender o funcionamento do framework de sockets e também para lidar com alguns detalhes de rede, mas depois que esses pontos foram superados o desenvolvimento fluiu bem.
+
+Como extensão além do núcleo obrigatório, implementei uma API REST em Java Spring Boot que permite executar comandos administrativos e monitorar os usuários remotamente. Essa API se integra ainda a um webapp React, que abre a possibilidade de usar o chat diretamente no navegador a partir de qualquer máquina — incluindo celulares. Assim, o sistema conseguiu unir computadores, dispositivos móveis, diferentes sistemas operacionais e stacks de programação em um mesmo ecossistema de rede.
+
+No geral, foi um trabalho muito legal de fazer. Gostei bastante de aplicar os conceitos de rede de computadores em algo prático e funcional, e acredito que a experiência de integrar tantas tecnologias diferentes em um mesmo sistema vai ser bastante útil para estudos futuros.
+
+O projeto conseguiu cumprir a proposta de desenvolver um sistema de chat TCP robusto e multiplataforma. O servidor ficou responsável por gerenciar múltiplas conexões, divulgar seu endereço via UDP e aceitar tanto mensagens em broadcast quanto privadas. Além disso, mantém uma lista sempre atualizada dos usuários conectados e oferece comandos administrativos como /lista, /status e /desconectar. Os clientes em Windows (WinForms) e Linux/macOS (Avalonia) se integram naturalmente nesse fluxo, abrindo janelas de conversas privadas automaticamente e mostrando em tempo real quem está online.
+
+Uma parte muito interessante do trabalho foi perceber como diferentes linguagens, stacks, aparelhos e sistemas operacionais podem conviver na mesma rede, comunicando-se de forma integrada. Isso permitiu observar na prática as camadas de aplicação, transporte e rede, confirmando o funcionamento através de análises no Wireshark. No começo houve certa dificuldade para entender o funcionamento do framework de sockets e também para lidar com alguns detalhes de rede, mas depois que esses pontos foram superados o desenvolvimento fluiu bem.
+
+Como extensão além do núcleo obrigatório, implementei uma API REST em Java Spring Boot que permite executar comandos administrativos e monitorar os usuários remotamente. Essa API se integra ainda a um webapp React, que abre a possibilidade de usar o chat diretamente no navegador a partir de qualquer máquina — incluindo celulares. Assim, o sistema conseguiu unir computadores, dispositivos móveis, diferentes sistemas operacionais e stacks de programação em um mesmo ecossistema de rede.
+
+No geral, foi um trabalho muito legal de fazer. Gostei bastante de aplicar os conceitos de rede de computadores em algo prático e funcional, e acredito que a experiência de integrar tantas tecnologias diferentes em um mesmo sistema vai ser bastante útil para estudos futuros.
